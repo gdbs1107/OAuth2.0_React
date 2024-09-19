@@ -54,6 +54,8 @@ const App = () => {
             } else {
                 setCurrentPage('login'); // 이름이 없거나 토큰이 없는 경우 로그인 페이지로 설정
             }
+
+        console.log(token)
         };
 
         checkAuthStatus();
