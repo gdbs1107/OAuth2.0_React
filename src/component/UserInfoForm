@@ -1,0 +1,57 @@
+import { useState } from 'react';
+import axios from 'axios';
+
+const UserInfoForm = () => {
+    const [userInfo, setUserInfo] = useState({
+        nickName: '',
+        birthDate: '',
+        phone: '',
+    });
+
+    const handleChange = (e) => {
+        setUserInfo({
+            ...userInfo,
+            [e.target.name]: e.target.value,
+        });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const response = await axios.post('http://localhost:8080/user/UserInfo', userInfo, {
+                withCredentials: true,
+            });
+
+            if (response.status === 200) {
+                alert('추가 정보가 성공적으로 저장되었습니다!');
+                window.location.href = '/home'; // 홈 페이지로 이동
+            }
+        } catch (error) {
+            console.error('추가 정보 저장 중 오류 발생:', error);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <label>
+                닉네임:
+                <input type="text" name="nickName" value={userInfo.nickName} onChange={handleChange} required />
+            </label>
+            <br />
+            <label>
+                생년월일:
+                <input type="date" name="birthDate" value={userInfo.birthDate} onChange={handleChange} required />
+            </label>
+            <br />
+            <label>
+                전화번호:
+                <input type="tel" name="phone" value={userInfo.phone} onChange={handleChange} required />
+            </label>
+            <br />
+            <button type="submit">저장</button>
+        </form>
+    );
+};
+
+export default UserInfoForm;

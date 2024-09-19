@@ -4,57 +4,59 @@ import HomePage from './HomePage';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const App = () => {
-
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userName, setUserName] = useState("");
-    const [currentPage, setCurrentPage] = useState('login');
+    const [currentPage, setCurrentPage] = useState('login'); // 초기 페이지 설정
     const navigate = useNavigate();
     const location = useLocation();
 
     useEffect(() => {
-        const fetchJwtAndRedirect = async () => {
-            const queryParams = new URLSearchParams(location.search);
-            const name = queryParams.get('name');
-
-            if (name) {
-                // OAuth2 JWT Header API 호출
-                try {
-                    const response = await fetch("http://localhost:8080/oauth2-jwt-header", {
-                        method: 'POST',
-                        credentials: 'include'
-                    });
-
-                    if (response.ok) {
-                        const accessToken = response.headers.get('access');
-
-                        if (accessToken) {
-                            localStorage.setItem('accessToken', accessToken);
-                            localStorage.setItem('name', name);
-                            setIsLoggedIn(true);
-                            setUserName(name);
+        const checkAuthStatus = async () => {
+            const token = localStorage.getItem('accessToken');
+            const storedName = localStorage.getItem('name');
+            
+            if (token && storedName) {
+                setIsLoggedIn(true);
+                setUserName(storedName);
+                setCurrentPage('home'); // 로그인 상태일 때 홈 페이지로 설정
+            } else if (location.search.includes('name=')) {
+                // OAuth2 리다이렉트 처리
+                const queryParams = new URLSearchParams(location.search);
+                const name = queryParams.get('name');
+                
+                if (name) {
+                    try {
+                        const response = await fetch("http://localhost:8080/oauth2-jwt-header", {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        
+                        if (response.ok) {
+                            const accessToken = response.headers.get('access');
+                            
+                            if (accessToken) {
+                                localStorage.setItem('accessToken', accessToken);
+                                localStorage.setItem('name', name);
+                                setIsLoggedIn(true);
+                                setUserName(name);
+                                setCurrentPage('home'); // 로그인 후 홈 페이지로 설정
+                            } else {
+                                throw new Error('Failed to fetch access token');
+                            }
                         } else {
-                            throw new Error('Failed to fetch access token');
+                            throw new Error('Failed to fetch JWT');
                         }
-                    } else {
-                        throw new Error('Failed to fetch JWT');
+                    } catch (error) {
+                        console.error("JWT 요청 중 오류 발생:", error);
+                        setCurrentPage('login'); // 오류 발생 시 로그인 페이지로 설정
                     }
-                } catch (error) {
-                    console.error("JWT 요청 중 오류 발생:", error);
                 }
             } else {
-                // 토큰이 없으면 로그인 페이지로 이동
-                const token = localStorage.getItem('accessToken');
-                const storedName = localStorage.getItem('name');
-
-                if (token && storedName) {
-                    setIsLoggedIn(true);
-                    setUserName(storedName);
-                } else {
-                }
+                setCurrentPage('login'); // 이름이 없거나 토큰이 없는 경우 로그인 페이지로 설정
             }
         };
 
-        fetchJwtAndRedirect();
+        checkAuthStatus();
     }, [location.search]);
 
     const handleLogout = async () => {
@@ -62,8 +64,8 @@ const App = () => {
         setUserName("");
         localStorage.removeItem('accessToken');
         localStorage.removeItem('name');
+        setCurrentPage('login'); // 로그아웃 후 로그인 페이지로 설정
 
-        // 백엔드 로그아웃 API 호출
         try {
             await fetch("http://localhost:8080/logout", {
                 method: 'POST',
